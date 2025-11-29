@@ -43,16 +43,17 @@ DroneBrain is an intelligent autonomous drone system that combines real-time com
 - Real-time position updates for locked targets
 
 ### Autonomous Behaviors
-- **PID Gimbal Tracking**: Smooth, accurate tracking of locked targets
-- **Search Mode**: Automated 270° oscillating sweep pattern
+- **PID Gimbal Tracking**: Locked target tracking with PID control
+- **Search Mode**: 270° oscillating sweep pattern for target acquisition
 - **Loiter Mode**: Circular orbit around locked target at standoff distance
-- **Follow Mode**: Actively follows moving targets maintaining standoff distance
+- **Follow Mode**: Chase moving targets maintaining standoff distance
 - Automatic waypoint generation via MAVLink GUIDED mode
+- Safety checks: armed, GUIDED mode, target lock required
 
 ### Streaming & Distribution
-- Dual video streams: raw + annotated feeds
+- Annotated video stream with detection overlays
 - MediaMTX multi-protocol support (RTSP/RTMP/HLS/WebRTC)
-- VPN-optimized streaming
+- FFmpeg hardware acceleration
 - Configurable quality and framerate
 
 ### TAK Integration

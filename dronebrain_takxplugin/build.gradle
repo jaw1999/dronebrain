@@ -1,0 +1,161 @@
+plugins {
+    id "java"
+    id "maven-publish"
+}
+
+group = "com.rivet"
+description = "Rivet Plugin"
+version '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+// Disable SSL certificate validation (for internal GitLab server)
+import javax.net.ssl.*
+import java.security.cert.X509Certificate
+
+if (!System.getProperty("gradle.ssl.disabled")) {
+    def trustAllCerts = [
+        new X509TrustManager() {
+            X509Certificate[] getAcceptedIssuers() { return null }
+            void checkClientTrusted(X509Certificate[] certs, String authType) {}
+            void checkServerTrusted(X509Certificate[] certs, String authType) {}
+        }
+    ] as TrustManager[]
+
+    def sc = SSLContext.getInstance("TLS")
+    sc.init(null, trustAllCerts, new java.security.SecureRandom())
+    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory())
+    HttpsURLConnection.setDefaultHostnameVerifier({ hostname, session -> true } as HostnameVerifier)
+
+    System.setProperty("gradle.ssl.disabled", "true")
+}
+
+ext {
+    // The build script needs to know the TAKX installation directory in order to install and clean the plugin jar file.
+    // takxInstallDir = "C:/Program Files/TAKX" // Default installation directory for Windows
+    // takxInstallDir = "/Applications/TAKX" // Default installation directory for Mac
+    takxInstallDir = "/opt/TAKX" // Default installation directory for Linux
+
+    // You can determine your TAKX version by looking at the jars in the load directory of your installation;
+    // if the load directory has jars like bootstrap-5.0.0.jar, your TAKX version should be "5.0.0".
+    takxVersion = "5.4.0"
+
+    // platform = 'win' // Windows; comment out for Mac/Linux
+    // platform = 'macos' // Uncomment for Mac
+    platform = 'linux' // Linux
+
+    takKernelVersion = '8.18.1'
+    worldwindVersion = '2.2.1-TAKX-4'
+}
+
+repositories {
+    flatDir {
+        dirs "${takxInstallDir}/load", "${takxInstallDir}/lib", "${takxInstallDir}/plugins",
+                "${takxInstallDir}/modules/gov/tak/kernel/main"
+    }
+
+    mavenCentral()
+}
+
+dependencies {
+    // This library defines the TAKX API
+    implementation "gov.takx:platform:$takxVersion"
+
+    // Dependencies that are provided at runtime by TAKX
+    implementation group: 'jakarta.annotation', name: 'jakarta.annotation-api', version: '2.1.1'
+    implementation group: 'jakarta.enterprise', name: 'jakarta.enterprise.cdi-api', version: '4.0.1'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.3'
+    implementation "gov.tak.kernel:takkernel-shared:$takKernelVersion"
+    implementation group: 'gov.tak.kernel', name: "takkernel-engine", version: takKernelVersion
+    implementation group: 'gov.tak.kernel', name: "takkernel-engine-rt-${platform}64", version: takKernelVersion
+    implementation "gov.nasa:worldwind:$worldwindVersion"
+}
+
+// Instruct Gradle on which version to use for the Gradle wrapper.  For more info on using the Gradle wrapper, see
+// https://docs.gradle.org/3.3/userguide/gradle_wrapper.html
+wrapper {
+    gradleVersion = "7.3.3"
+}
+
+// Create an install task to copy the jar to the plugins directory
+tasks.create(name: 'install', group: 'Build', description: 'Copy jar to <takxInstallDir>/plugins') {
+    dependsOn 'build'
+
+    doLast {
+        File takxInstallDirectory = new File("${takxInstallDir}")
+
+        // Avoid creating the plugins directory if it doesn't already exist
+        if (takxInstallDirectory.exists()) {
+            File dest = new File(takxInstallDirectory, "plugins")
+
+            // Process the archive, if the appropriate task exists on the project
+            def archiveTask = tasks.findByName('jar')
+            if (archiveTask) {
+                File archiveFile = archiveTask.archivePath
+
+                logger.info("Copy $archiveFile to $dest")
+
+                copy {
+                    from archiveFile
+                    into dest
+                }
+            }
+        } else {
+            println "Specified TAKX installation directory does not exist; skipping the jar install!"
+        }
+    }
+}
+
+// Create an uninstall task to delete jar from the plugin directory
+tasks.create(name: 'uninstall', group: 'Build', description: 'Delete jar from <takxInstallDir>/plugins') {
+    dependsOn 'clean'
+    File takxPluginsDir = new File("${takxInstallDir}/plugins")
+    delete fileTree(takxPluginsDir) {
+        include "${project.name}-${project.version}.jar"
+    }
+}
+
+// Create a special configuration for specifying which dependencies should be included in the plugin jar
+configurations {
+    includeInJar { transitive = true }
+    implementation.extendsFrom includeInJar
+}
+
+// Make sure all jars in the runtime configuration are included in the lib directory
+// in the jar that is assembled.
+jar {
+    into('lib') {
+        from configurations.includeInJar
+    }
+}
+
+// Configure publishing to GitLab Package Registry
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+
+            groupId = 'com.rivet'
+            artifactId = 'rivet'
+            version = '1.0.0-SNAPSHOT'
+        }
+    }
+
+    repositories {
+        maven {
+            url = "https://code.levelup.cce.af.mil/api/v4/projects/41290/packages/maven"
+            name = "GitLab"
+            allowInsecureProtocol = false
+            credentials(HttpHeaderCredentials) {
+                name = "Private-Token"
+                value = project.findProperty("gitlabToken") ?: System.getenv("GITLAB_TOKEN")
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
+    }
+}

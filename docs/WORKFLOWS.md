@@ -224,31 +224,44 @@ if target_moved > min_movement:
 
 ## Search Mode Workflow
 
-### Automated Search Pattern
+### Automated Gimbal Sweep
 
 ```
 User → Click "Start Search" → Search Mode Active
                                     ↓
-                            Gimbal Controller
+                          Frontend JavaScript
                                     ↓
                          270° Sweep Pattern
+                                    ↓
+                       POST /api/gimbal/move
+                                    ↓
+                          Gimbal Movement
                                     ↓
                           Object Detection
                                     ↓
                          Track List Updates
 ```
 
-**Pattern:**
-1. Start at -135° yaw
-2. Sweep to +135° yaw at constant speed
-3. Reverse direction
-4. Repeat oscillation
+**Implementation:**
+- Frontend-based control via JavaScript timer
+- Oscillates gimbal yaw ±135° (270° total)
+- Speed: 12°/s
+- Reverses direction every 18 seconds
+- Runs continuously until stopped
 
-**Parameters:**
-- Pitch: -30° (looking down)
-- Yaw range: -135° to +135° (270° total)
-- Speed: 10-20 (adjustable)
-- Detection runs continuously
+**Pattern:**
+```javascript
+// Start at current position
+// Sweep right at 12°/s for 18s
+// Reverse to left at 12°/s for 18s
+// Repeat
+```
+
+**Usage:**
+1. Click "Start Search" button in Control tab
+2. Gimbal sweeps left-right automatically
+3. Detection runs continuously
+4. Click "Stop Search" to end
 
 ## Mission Planning Workflow
 
@@ -447,7 +460,7 @@ Hardware → Interfaces → State Manager → Web Server → Clients
 ```
 1. Detect: Target not in detections for 5s
 2. Hold: Continue last gimbal position
-3. Search: Optionally enable search mode
+3. Search: Enable search mode to reacquire
 4. Timeout: Disable tracking after 10s
 5. Manual: Return gimbal control to user
 ```
