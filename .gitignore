@@ -86,4 +86,6 @@ Thumbs.db
 .DS_Store
 
 # External plugins
-r_takxplugin/
+dronebrain_plugins/
+dronebrain_takxplugin/
+rivet_takxplugin/
