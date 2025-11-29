@@ -1,0 +1,278 @@
+# DroneBrain Configuration File
+# Copy this to config.yaml and customize for your setup
+
+# Network Configuration
+network:
+  subnet: "192.168.144.0/24"
+
+# Drone / Flight Controller Configuration
+drone:
+  # MAVLink connection settings
+  mavlink_ip: "192.168.144.10"
+  mavlink_port: 14550
+  mavlink_protocol: "udpout"  # udpin, udpout, tcp
+
+  # System IDs
+  system_id: 255  # GCS system ID
+  component_id: 190  # GCS component ID
+
+  # Telemetry rates (Hz)
+  telemetry_rates:
+    position: 10
+    attitude: 20
+    battery: 1
+    gps: 5
+
+  # Safety limits
+  safety:
+    max_altitude: 120  # meters AGL
+    min_battery_voltage: 14.0  # volts (for 4S LiPo)
+    geofence_enabled: false
+
+# Camera / Gimbal Configuration
+camera:
+  # Siyi A8 Mini connection
+  siyi_ip: "192.168.144.25"
+  siyi_port: 37260
+
+  # RTSP video stream
+  rtsp_url: "rtsp://192.168.144.25:8554/main.264"
+  rtsp_transport: "tcp"  # tcp or udp
+
+  # Camera intrinsics (calibration)
+  intrinsics:
+    # Focal length in pixels (horizontal)
+    focal_length_px: 1280.0
+
+    # Image sensor dimensions
+    sensor_width_px: 1280
+    sensor_height_px: 720
+
+    # Principal point (usually image center)
+    cx: 640.0
+    cy: 360.0
+
+    # Distortion coefficients (if calibrated)
+    k1: 0.0
+    k2: 0.0
+    p1: 0.0
+    p2: 0.0
+
+  # Gimbal settings
+  gimbal:
+    pitch_limits:
+      min: -90.0  # degrees
+      max: 25.0
+    yaw_limits:
+      min: -135.0
+      max: 135.0
+
+    # Control smoothing
+    smooth_factor: 0.7  # 0.0 = instant, 1.0 = maximum smoothing
+
+# Computer Vision Configuration
+vision:
+  # Model selection
+  grounding_dino:
+    model: "IDEA-Research/grounding-dino-base"
+    # Alternative: "IDEA-Research/grounding-dino-tiny" for faster inference
+
+  sam:
+    model: "facebook/sam-vit-base"
+    # Alternatives: sam-vit-large, sam-vit-huge
+
+  # Detection parameters
+  detection:
+    confidence_threshold: 0.30  # 0.0 to 1.0
+    nms_threshold: 0.45  # Non-maximum suppression
+
+    # Text prompts for detection (Grounding DINO)
+    classes:
+      - "person"
+      - "car"
+      - "truck"
+      - "bus"
+      - "motorcycle"
+      - "boat"
+      - "ship"
+      - "airplane"
+      - "helicopter"
+
+    # Detection frequency
+    detection_interval: 0.1  # seconds between detections (10 Hz)
+
+    # Frame preprocessing
+    max_input_size: 1280  # resize frames to this width
+
+  # GPU settings
+  device: "cuda"  # "cuda" or "cpu"
+  fp16: true  # Use half-precision for faster inference
+
+  # Visualization
+  visualization:
+    box_color: [0, 255, 0]  # BGR format
+    box_thickness: 2
+    text_color: [255, 255, 255]
+    text_scale: 0.6
+    show_confidence: true
+    show_class_name: true
+
+# Target Tracking Configuration
+tracking:
+  # Tracker algorithm
+  algorithm: "csrt"  # Options: csrt, kcf, mosse
+
+  # Track refresh
+  refresh_interval: 0.2  # seconds
+
+  # Photogrammetry
+  photogrammetry:
+    # Assume targets at ground level
+    target_altitude_agl: 0.0  # meters
+
+    # Elevation data (future feature)
+    use_elevation_data: false
+    elevation_source: null
+
+# Video Streaming Configuration
+streaming:
+  # MediaMTX server
+  mediamtx:
+    url: "rtsp://localhost:8554"
+
+    # Stream paths
+    raw_stream: "raw"
+    annotated_stream: "annotated"
+
+  # Encoding settings
+  encoding:
+    codec: "h264"
+    bitrate: "4M"  # 4 Mbps
+    framerate: 30
+    gop_size: 30  # Keyframe interval
+
+    # Hardware acceleration (Jetson)
+    hw_accel: true
+    encoder: "h264_nvenc"  # h264_nvenc for Jetson, h264_omx for older
+
+  # Stream quality presets
+  quality: "high"  # low, medium, high, ultra
+
+# TAK / Cursor-on-Target Configuration
+tak:
+  enabled: true
+
+  # TAK server connection
+  server:
+    ip: "10.0.0.100"  # Replace with your TAK server IP
+    port: 8087
+    protocol: "tcp"  # tcp or udp
+
+  # TLS settings (if using TAKServer with SSL)
+  tls:
+    enabled: false
+    cert_path: null
+    key_path: null
+    ca_path: null
+
+  # CoT message settings
+  cot:
+    # Update frequency
+    update_interval: 2.0  # seconds
+    stale_interval: 10.0  # seconds until stale
+
+    # Default values
+    default_affiliation: "neutral"  # friendly, neutral, hostile, unknown
+    default_dimension: "land-unit"  # land-unit, air, surface
+
+    # UID generation
+    uid_prefix: "DRONEBRAIN"
+
+  # What to send
+  send_drone_position: true
+  send_detected_targets: true
+  send_gimbal_pointing: false
+
+# Web UI Configuration
+web_ui:
+  # Server settings
+  host: "0.0.0.0"  # Bind to all interfaces
+  port: 8000
+
+  # Security
+  cors_origins:
+    - "*"  # Allow all origins (restrict in production)
+
+  # WebSocket settings
+  websocket:
+    heartbeat_interval: 30  # seconds
+    max_message_size: 10485760  # 10 MB
+
+  # Frontend settings
+  frontend:
+    title: "DroneBrain Control Center"
+    refresh_rate: 100  # milliseconds
+
+    # Map settings (for target visualization)
+    map:
+      default_zoom: 18
+      tile_server: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+
+# Autonomous Behavior Configuration
+autonomous:
+  # Gimbal auto-tracking
+  gimbal_lock:
+    enabled: true
+    track_refresh_rate: 0.2  # seconds
+    lead_compensation: true  # Predict target movement
+
+  # Loiter mode (orbit around target)
+  loiter:
+    radius: 50.0  # meters
+    altitude_mode: "relative"  # relative, absolute
+    altitude_offset: 0.0  # meters (relative to current)
+    speed: 5.0  # m/s
+    direction: "clockwise"  # clockwise, counterclockwise
+
+  # Follow mode (chase target)
+  follow:
+    follow_distance: 30.0  # meters behind target
+    follow_altitude_offset: 10.0  # meters above target
+    max_speed: 10.0  # m/s
+    update_rate: 1.0  # seconds between waypoint updates
+
+  # General autonomous settings
+  min_detection_confidence: 0.5  # Require high confidence for autonomous action
+  target_lost_timeout: 5.0  # seconds before aborting mission
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+
+  # Log to file
+  file:
+    enabled: true
+    path: "logs/dronebrain.log"
+    rotation: "100 MB"  # Rotate when file reaches this size
+    retention: "1 week"  # Keep logs for this duration
+
+  # Log to console
+  console:
+    enabled: true
+    colorize: true
+
+  # What to log
+  log_telemetry: true
+  log_detections: true
+  log_commands: true
+
+# System Configuration
+system:
+  # Threads and processes
+  max_workers: 4
+
+  # Frame buffer sizes
+  frame_buffer_size: 30  # frames
+
+  # Graceful shutdown timeout
+  shutdown_timeout: 10.0  # seconds

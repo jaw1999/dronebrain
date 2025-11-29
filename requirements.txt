@@ -1,0 +1,64 @@
+# DroneBrain Dependencies
+
+# Core
+python-dotenv>=1.0.0
+pyyaml>=6.0
+typing-extensions>=4.5.0
+
+# Computer Vision & ML
+torch>=2.0.0
+torchvision>=0.15.0
+opencv-python>=4.8.0
+opencv-contrib-python>=4.8.0
+transformers>=4.35.0
+# groundingdino>=0.1.0  # Install from source in Phase 2: https://github.com/IDEA-Research/GroundingDINO
+# segment-anything>=1.0  # Install from source in Phase 2: https://github.com/facebookresearch/segment-anything
+supervision>=0.16.0  # For visualization utilities
+pillow>=10.0.0
+numpy>=1.24.0
+
+# MAVLink & Drone Control
+pymavlink>=2.4.40
+dronekit>=2.9.2  # Optional: higher-level API
+
+# Video Processing & Streaming
+av>=11.0.0  # Python bindings for FFmpeg
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+python-multipart>=0.0.6
+jinja2>=3.1.2
+aiofiles>=23.2.1
+
+# TAK / CoT Integration
+pytak>=6.1.0  # Cursor on Target
+lxml>=4.9.3  # XML processing for CoT
+
+# Networking
+requests>=2.31.0
+aiohttp>=3.9.0
+httpx>=0.25.0
+
+# Utilities
+loguru>=0.7.2  # Better logging
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Data Processing
+pandas>=2.1.0  # For telemetry logging
+scipy>=1.11.0  # For photogrammetry calculations
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.1.0
+mypy>=1.6.0
+
+# Optional: Performance Monitoring
+psutil>=5.9.0
+gputil>=1.4.0

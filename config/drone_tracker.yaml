@@ -1,0 +1,34 @@
+# Custom Object Tracker Configuration for Drone Applications
+# Optimized for moving platforms with gimbal-mounted cameras
+#
+# Based on BoTSORT (Bag of Tricks for Sort) tracker with:
+# - Camera motion compensation for drone/gimbal movement
+# - Extended track buffer for temporary occlusions
+# - Relaxed matching thresholds for large frame-to-frame displacement
+
+tracker_type: bytetrack
+
+# Detection confidence thresholds
+track_high_thresh: 0.5     # High confidence detections (primary matching)
+track_low_thresh: 0.1      # Low confidence detections (recovery matching)
+new_track_thresh: 0.6      # Threshold to create new track
+
+# Track persistence
+track_buffer: 30           # Keep lost tracks for 30 frames (~1 second at 30fps)
+
+# Matching thresholds
+match_thresh: 0.8          # IoU threshold for matching
+fuse_score: true           # Fuse detection confidence with IoU score
+
+# BoTSORT-specific parameters
+# Camera motion compensation - critical for drone/gimbal movement
+gmc_method: sparseOptFlow  # Options: sparseOptFlow, orb, ecc, none
+                           # sparseOptFlow: Fast optical flow for motion compensation
+
+# Association thresholds
+proximity_thresh: 0.5      # Distance threshold for first association (relaxed)
+appearance_thresh: 0.6     # Appearance similarity threshold (relaxed for view changes)
+
+# ReID (Re-identification) features
+with_reid: false          # Disable for performance (ReID is very computationally expensive)
+model: auto               # ReID model name/path; "auto" uses detector features

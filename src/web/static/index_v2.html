@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DroneBrain - Command & Control</title>
+    <link rel="stylesheet" href="/static/css/style_v2.css">
+
+    <!-- Leaflet for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <span class="nav-title">DroneBrain C2</span>
+        </div>
+        <div class="nav-status">
+            <div class="status-item">
+                <span class="status-label">System:</span>
+                <span id="system-status" class="status-value">IDLE</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Connection:</span>
+                <span id="connection-status" class="status-badge disconnected">●</span>
+            </div>
+            <button class="btn btn-config" onclick="openConfigModal()">Config</button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar - Telemetry -->
+        <aside class="sidebar-left">
+            <div class="sidebar-header">
+                <h3>Telemetry</h3>
+            </div>
+
+            <!-- Drone Telemetry Tabs -->
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="switchTab('flight')">Flight</button>
+                    <button class="tab-btn" onclick="switchTab('position')">Position</button>
+                    <button class="tab-btn" onclick="switchTab('system')">System</button>
+                    <button class="tab-btn" onclick="switchTab('tracks')">Tracks</button>
+                    <button class="tab-btn" onclick="switchTab('control')">Control</button>
+                    <button class="tab-btn" onclick="switchTab('autonomous')">Auto</button>
+                </div>
+
+                <!-- Flight Tab -->
+                <div id="tab-flight" class="tab-content active">
+                    <div class="telem-group">
+                        <div class="telem-row">
+                            <span class="telem-label">Flight Mode</span>
+                            <span id="drone-mode" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Armed</span>
+                            <span id="drone-armed" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Battery</span>
+                            <span id="drone-battery" class="telem-value telem-battery">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Ground Speed</span>
+                            <span id="drone-velocity" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Vertical Speed</span>
+                            <span id="drone-vz" class="telem-value">-</span>
+                        </div>
+                    </div>
+
+                    <div class="telem-group">
+                        <h4>Attitude</h4>
+                        <div class="telem-row">
+                            <span class="telem-label">Roll</span>
+                            <span id="drone-roll" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Pitch</span>
+                            <span id="drone-pitch" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Heading</span>
+                            <span id="drone-heading" class="telem-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Position Tab -->
+                <div id="tab-position" class="tab-content">
+                    <div class="telem-group">
+                        <div class="telem-row">
+                            <span class="telem-label">Latitude</span>
+                            <span id="drone-lat" class="telem-value mono">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Longitude</span>
+                            <span id="drone-lon" class="telem-value mono">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Altitude MSL</span>
+                            <span id="drone-altitude-msl" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Altitude AGL</span>
+                            <span id="drone-altitude" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">GPS Fix</span>
+                            <span id="drone-gps" class="telem-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Tab -->
+                <div id="tab-system" class="tab-content">
+                    <div class="telem-group">
+                        <h4>Gimbal</h4>
+                        <div class="telem-row">
+                            <span class="telem-label">Yaw</span>
+                            <span id="gimbal-yaw" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Pitch</span>
+                            <span id="gimbal-pitch" class="telem-value">-</span>
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="centerGimbal()">
+                            Center Gimbal
+                        </button>
+                    </div>
+
+                    <div class="telem-group">
+                        <h4>Camera</h4>
+                        <div class="telem-row">
+                            <span class="telem-label">Resolution</span>
+                            <span id="camera-resolution" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">FPS</span>
+                            <span id="camera-fps" class="telem-value">-</span>
+                        </div>
+                        <div class="telem-row">
+                            <span class="telem-label">Detections</span>
+                            <span id="detection-count" class="telem-value telem-detections">0</span>
+                        </div>
+                    </div>
+
+                    <div class="telem-group">
+                        <h4>TAK Integration</h4>
+                        <div class="telem-row">
+                            <span class="telem-label">Status</span>
+                            <span id="tak-status" class="telem-value">Disabled</span>
+                        </div>
+                        <div class="telem-row" id="tak-messages-row" style="display:none;">
+                            <span class="telem-label">Messages Sent</span>
+                            <span id="tak-messages" class="telem-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tracks Tab -->
+                <div id="tab-tracks" class="tab-content">
+                    <div class="telem-group">
+                        <h4>Active Tracks</h4>
+                        <div id="tracks-list" class="tracks-list">
+                            <p class="tracks-empty">No active tracks</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Tab (Camera + Gimbal + Tracking) -->
+                <div id="tab-control" class="tab-content">
+                    <!-- Gimbal Manual Control -->
+                    <div class="telem-group">
+                        <h4>Manual Control</h4>
+
+                        <!-- Speed Control -->
+                        <div class="control-row">
+                            <label for="gimbal-speed">Speed:</label>
+                            <input type="range" id="gimbal-speed" min="5" max="100" value="20" step="5">
+                            <span id="gimbal-speed-value">20°/s</span>
+                        </div>
+
+                        <!-- Directional Controls -->
+                        <div class="gimbal-controls">
+                            <button class="gimbal-btn" onmousedown="gimbalControl('up')" onmouseup="gimbalStop()">Up</button>
+                            <div class="gimbal-middle">
+                                <button class="gimbal-btn" onmousedown="gimbalControl('left')" onmouseup="gimbalStop()">Left</button>
+                                <button class="gimbal-btn gimbal-center" onclick="gimbalCenter()">Center</button>
+                                <button class="gimbal-btn" onmousedown="gimbalControl('right')" onmouseup="gimbalStop()">Right</button>
+                            </div>
+                            <button class="gimbal-btn" onmousedown="gimbalControl('down')" onmouseup="gimbalStop()">Down</button>
+                        </div>
+                    </div>
+
+                    <!-- Zoom Control -->
+                    <div class="telem-group">
+                        <h4>Zoom</h4>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" onmousedown="zoomControl('in')" onmouseup="zoomStop()">Zoom In</button>
+                            <button class="zoom-btn" onmousedown="zoomControl('out')" onmouseup="zoomStop()">Zoom Out</button>
+                        </div>
+                        <p class="zoom-warning">Note: Zoom affects GPS accuracy</p>
+                    </div>
+
+                    <!-- Search Mode -->
+                    <div class="telem-group">
+                        <h4>Auto Search</h4>
+                        <button id="search-mode-btn" class="control-btn" onclick="toggleSearchMode()">Start Search</button>
+                        <p class="search-desc">Oscillating 270° sweep pattern</p>
+                    </div>
+
+                    <!-- Tracking Controls -->
+                    <div class="telem-group">
+                        <h4>Tracking</h4>
+                        <div class="telem-row">
+                            <span class="telem-label">State</span>
+                            <span id="tracking-state" class="telem-value">IDLE</span>
+                        </div>
+                        <div id="tracking-target-info" class="telem-row" style="display:none;">
+                            <span class="telem-label">Target</span>
+                            <span id="tracking-target" class="telem-value">-</span>
+                        </div>
+
+                        <!-- Target Location -->
+                        <div id="target-location-section" style="display:none;">
+                            <div class="telem-group">
+                                <h4>Target Location</h4>
+                                <div class="telem-row">
+                                    <span class="telem-label">Latitude</span>
+                                    <span id="target-lat" class="telem-value mono">-</span>
+                                </div>
+                                <div class="telem-row">
+                                    <span class="telem-label">Longitude</span>
+                                    <span id="target-lon" class="telem-value mono">-</span>
+                                </div>
+                                <div class="telem-row">
+                                    <span class="telem-label">Distance</span>
+                                    <span id="target-distance" class="telem-value">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="number" id="track-id-input" placeholder="Track ID" min="1">
+                            <button class="btn btn-success" onclick="startTracking()">Start</button>
+                        </div>
+                        <button class="btn btn-danger btn-block" onclick="stopTracking()">Stop Tracking</button>
+                    </div>
+                </div>
+
+                <!-- Autonomous Tab -->
+                <div id="tab-autonomous" class="tab-content">
+                    <div class="telem-group">
+                        <div class="telem-row">
+                            <span class="telem-label">Mode</span>
+                            <span id="autonomous-mode" class="telem-value">DISABLED</span>
+                        </div>
+                    </div>
+
+                    <div class="telem-group">
+                        <label class="control-label">Standoff Distance</label>
+                        <div class="control-row">
+                            <input type="range" id="standoff-distance" min="10" max="500" value="50" step="5">
+                            <span id="standoff-distance-value" class="control-value">50m</span>
+                        </div>
+                    </div>
+
+                    <div class="autonomous-buttons">
+                        <button id="btn-loiter" class="btn btn-primary btn-block" onclick="enableLoiterMode()"
+                                title="Orbit around locked target">
+                            🔄 Loiter Mode
+                        </button>
+                        <button id="btn-follow" class="btn btn-primary btn-block" onclick="enableFollowMode()"
+                                title="Follow moving target">
+                            ➡️ Follow Mode
+                        </button>
+                        <button id="btn-autonomous-stop" class="btn btn-danger btn-block" onclick="disableAutonomousMode()"
+                                style="display:none;">
+                            ⏹️ Stop Autonomous
+                        </button>
+                    </div>
+
+                    <div id="autonomous-requirements" class="info-box" style="display:none;">
+                        <small>⚠️ Requires: Armed + GUIDED mode + Target locked</small>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Content -->
+        <main class="main-content">
+            <!-- Video Section - Full Height -->
+            <section class="video-section-full">
+                <div class="section-header">
+                    <h3>Live Video</h3>
+                    <div class="video-controls">
+                        <button class="video-tab-btn active" onclick="switchVideo('annotated')">Annotated</button>
+                        <button class="video-tab-btn" onclick="switchVideo('raw')">Raw</button>
+                    </div>
+                </div>
+                <div class="video-wrapper">
+                    <video id="video-annotated" class="video-player active" controls autoplay muted></video>
+                    <video id="video-raw" class="video-player" controls autoplay muted style="display:none;"></video>
+                    <div class="video-status-overlay">
+                        <span id="video-status">Connecting...</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Configuration</h3>
+                <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="config-section">
+                    <h4>TAK Integration</h4>
+                    <div class="config-row">
+                        <label class="config-label">Enabled</label>
+                        <input type="checkbox" id="config-tak-enabled">
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Server IP</label>
+                        <input type="text" id="config-tak-ip" class="config-input" placeholder="127.0.0.1">
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Server Port</label>
+                        <input type="number" id="config-tak-port" class="config-input" placeholder="8087">
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Callsign</label>
+                        <input type="text" id="config-tak-callsign" class="config-input" placeholder="DRONEBRAIN-1">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h4>Detection</h4>
+                    <div class="config-row">
+                        <label class="config-label">Model Size</label>
+                        <select id="config-detection-model" class="config-input">
+                            <option value="n">Nano</option>
+                            <option value="s">Small</option>
+                            <option value="m">Medium</option>
+                            <option value="l">Large</option>
+                            <option value="x">XLarge</option>
+                        </select>
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Confidence Threshold</label>
+                        <input type="number" id="config-detection-confidence" class="config-input" min="0" max="1" step="0.05" placeholder="0.25">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h4>Tracking PID Tuning</h4>
+                    <div class="config-grid">
+                        <div class="config-row">
+                            <label class="config-label">Yaw Kp</label>
+                            <input type="number" id="config-tracking-yaw-kp" class="config-input" step="0.1" placeholder="1.5">
+                        </div>
+                        <div class="config-row">
+                            <label class="config-label">Yaw Kd</label>
+                            <input type="number" id="config-tracking-yaw-kd" class="config-input" step="0.1" placeholder="0.1">
+                        </div>
+                        <div class="config-row">
+                            <label class="config-label">Pitch Kp</label>
+                            <input type="number" id="config-tracking-pitch-kp" class="config-input" step="0.1" placeholder="1.5">
+                        </div>
+                        <div class="config-row">
+                            <label class="config-label">Pitch Kd</label>
+                            <input type="number" id="config-tracking-pitch-kd" class="config-input" step="0.1" placeholder="0.1">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Max Gimbal Speed (deg/s)</label>
+                        <input type="number" id="config-tracking-max-speed" class="config-input" step="1" placeholder="30">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="loadConfig()">Reload</button>
+                <button class="btn btn-success" onclick="saveConfig()">Save Config</button>
+                <button class="btn btn-danger" onclick="closeConfigModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app_v2.js"></script>
+</body>
+</html>

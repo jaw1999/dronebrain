@@ -1,0 +1,60 @@
+# MediaMTX Configuration for DroneBrain
+# Video streaming server configuration
+
+# Server settings
+logLevel: info
+logDestinations: [stdout]
+logFile: logs/mediamtx.log
+
+# API settings
+api: yes
+apiAddress: 127.0.0.1:9997
+
+# Metrics
+metrics: yes
+metricsAddress: 127.0.0.1:9998
+
+# Performance
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 512
+
+# RTSP settings
+rtspAddress: :8554
+rtspTransports: [tcp]
+rtspEncryption: "no"
+
+# HLS settings (for web browsers)
+hls: yes
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+hlsVariant: lowLatency
+hlsPartDuration: 200ms
+hlsSegmentDuration: 1s
+hlsSegmentCount: 7
+hlsSegmentMaxSize: 50M
+
+# WebRTC settings (for low-latency browser streaming)
+webrtc: yes
+webrtcAddress: :8889
+webrtcICEServers2: []
+
+# Paths (stream endpoints)
+paths:
+  # Raw video stream from camera (passthrough from Siyi)
+  raw:
+    source: publisher
+    sourceOnDemand: no
+    runOnReady: echo "Raw video stream started"
+    runOnNotReady: echo "Raw video stream stopped"
+
+  # Annotated video stream with detections
+  annotated:
+    source: publisher
+    sourceOnDemand: no
+    runOnReady: echo "Annotated video stream started"
+    runOnNotReady: echo "Annotated video stream stopped"
+
+  # All streams allow both RTSP and HLS/WebRTC
+  all:
+    source: publisher
